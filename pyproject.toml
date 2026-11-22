@@ -1,0 +1,79 @@
+[project]
+name = "vimath-hybrid-rag"
+version = "0.1.0"
+description = "Hybrid RAG (BM25 + dense + curriculum knowledge graph) over Vietnamese grade 6-9 math textbooks"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "daitrong94" }]
+requires-python = ">=3.11"
+keywords = ["rag", "information-retrieval", "knowledge-graph", "vietnamese", "math-education"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Natural Language :: Vietnamese",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# Core stays light (no torch): enough for configs, schemas, BM25, KG and evaluation code.
+dependencies = [
+  "pydantic>=2.7,<3",
+  "pyyaml>=6.0,<7",
+  "python-dotenv>=1.0,<2",
+  "numpy>=2.0,<3",
+  "networkx>=3.2,<4",
+  "bm25s[indexing]>=0.3,<0.4",
+  "tqdm>=4.66,<5",
+]
+
+[project.optional-dependencies]
+# PDF probing and text-layer extraction (laptop).
+ingest = ["pypdfium2>=5,<6"]
+# OCR backends: Colab T4 only, separate environment (they pin older LLM SDKs, see [tool.uv]).
+ocr-marker = ["marker-pdf>=2.2,<3"]
+ocr-mineru = ["mineru[torch]>=4.2,<5"]
+# Dense retrieval (bge-m3) and cross-encoder reranking; pulls torch.
+ml = ["sentence-transformers>=6,<7", "faiss-cpu>=1.9,<2"]
+# LLM backends. Ollama is reached through its OpenAI-compatible endpoint.
+llm = ["google-genai>=3,<4", "openai>=3,<4", "anthropic>=2,<3"]
+# Vietnamese word segmentation for the BM25 tokenizer ablation.
+viseg = ["underthesea>=9,<10"]
+demo = ["gradio>=6,<7"]
+analysis = ["pandas>=3,<4", "matplotlib>=3.8,<4"]
+
+[project.urls]
+Repository = "https://github.com/daitrong94/vimath-hybrid-rag"
+
+[dependency-groups]
+dev = ["pytest>=9,<10", "ruff>=0.17,<0.18", "pre-commit>=4,<5"]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vimath_rag"]
+
+[tool.uv]
+# marker-pdf and mineru require openai<3 / anthropic<1 / google-genai<3, which the `llm` extra excludes.
+conflicts = [
+  [{ extra = "ocr-marker" }, { extra = "llm" }],
+  [{ extra = "ocr-mineru" }, { extra = "llm" }],
+  [{ extra = "ocr-marker" }, { extra = "ocr-mineru" }],
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts", "app"]
+extend-exclude = ["notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "C4", "RUF"]
+ignore = ["E501"] # long Vietnamese strings/docstrings; the formatter handles code lines
+allowed-confusables = ["–", "—", "×", "’"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["vimath_rag"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

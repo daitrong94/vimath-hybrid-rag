@@ -1,0 +1,119 @@
+{
+  "$defs": {
+    "QuestionType": {
+      "description": "Golden-set question types (docs/DATA.md, section 5.3).",
+      "enum": [
+        "definition",
+        "formula",
+        "prerequisite",
+        "applied"
+      ],
+      "title": "QuestionType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One golden-set question with gold chunk ids (docs/DATA.md, section 5).",
+  "properties": {
+    "qid": {
+      "description": "'q0001'...; examples use 'ex-001'...",
+      "pattern": "^(q\\d{4}|ex-\\d{3})$",
+      "title": "Qid",
+      "type": "string"
+    },
+    "question": {
+      "description": "Written in the annotator's own words.",
+      "minLength": 5,
+      "title": "Question",
+      "type": "string"
+    },
+    "grade": {
+      "description": "Grade of the student asking; gold chunks must be <= it.",
+      "maximum": 9,
+      "minimum": 6,
+      "title": "Grade",
+      "type": "integer"
+    },
+    "qtype": {
+      "$ref": "#/$defs/QuestionType"
+    },
+    "gold_chunk_ids": {
+      "description": "Chunks that answer directly (relevance 2).",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Gold Chunk Ids",
+      "type": "array"
+    },
+    "supporting_chunk_ids": {
+      "description": "Helpful but not sufficient (relevance 1).",
+      "items": {
+        "type": "string"
+      },
+      "title": "Supporting Chunk Ids",
+      "type": "array"
+    },
+    "gold_concept_ids": {
+      "description": "KG concept ids; required for prerequisite questions.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Gold Concept Ids",
+      "type": "array"
+    },
+    "reference_answer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Short answer, own words.",
+      "title": "Reference Answer"
+    },
+    "source": {
+      "default": "self",
+      "enum": [
+        "self",
+        "dhmath",
+        "synthetic"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "dev",
+        "test"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    }
+  },
+  "required": [
+    "qid",
+    "question",
+    "grade",
+    "qtype",
+    "gold_chunk_ids",
+    "split"
+  ],
+  "title": "GoldItem",
+  "type": "object"
+}

@@ -1,0 +1,35 @@
+# Evaluation protocol (docs/EVALUATION.md). Tune on `dev`, report on `test`.
+
+golden_set: data/golden_set/golden_v1.jsonl # TBD: not created yet (examples.jsonl has 3 synthetic items)
+split: test
+methods: [bm25, dense, graph, hybrid, hybrid_rerank]
+
+retrieval:
+  k_values: [1, 3, 5, 10]
+  mrr_k: 10
+  ndcg_k: 10
+  relevance: { gold: 2, supporting: 1 }
+  out_of_grade_before_filter: true # measure what the grade filter removes (RQ3)
+
+generation:
+  enabled: true
+  methods: [none, bm25, dense, hybrid_rerank] # subset to stay within budget; extend if possible
+  llm: final # key under `llm` in configs/models.yaml
+  judge: judge
+  metrics: [faithfulness, answer_relevance, citation_accuracy, correctness]
+  modes: [answer] # hint mode is evaluated by hand on a small dev sample
+
+budget:
+  max_usd_total: 10.0 # hard cap across all paid runs (ledger in .cache/)
+  max_usd_per_run: 3.0
+  ledger: .cache/cost_ledger.jsonl
+
+stats:
+  bootstrap_samples: 10000
+  confidence: 0.95
+  seed: 42
+
+output:
+  runs_dir: results/runs # per-question outputs (contain textbook text) - git-ignored
+  tables_dir: results/tables
+  plots_dir: results/plots

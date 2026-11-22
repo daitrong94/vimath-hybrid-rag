@@ -1,0 +1,44 @@
+# Curriculum knowledge-graph schema - single source of truth, loaded by vimath_rag.kg.schema.
+# Documentation: docs/DATA.md, section 6. Fields `description`, `id_format`, `optional` are
+# documentation only; `required`, `enums`, `pairs`, `acyclic`, `symmetric`, `non_decreasing`
+# are enforced by validate_graph().
+version: 1
+
+node_types:
+  concept:
+    description: Khái niệm, định lí, công thức, tính chất hoặc phương pháp trong chương trình Toán THCS.
+    id_format: ASCII slug without diacritics, e.g. so-nguyen-to
+    required: [name, kind, grade_introduced] # grade_introduced may be < 6 for primary-school prerequisites
+    optional: [aliases, description, curriculum_ref]
+    enums:
+      kind: [topic, concept, theorem, formula, property, method]
+  lesson:
+    description: Một bài học hoặc đơn vị luyện tập trong SGK; id trùng unit_id của chunk.
+    id_format: g{grade}-{unit}, e.g. g6-b10
+    required: [grade, title]
+    optional: [number, volume, chapter]
+  chapter:
+    description: Một chương trong SGK.
+    id_format: g{grade}-c{nn}, e.g. g6-c02
+    required: [grade, number, title]
+
+edge_types:
+  prerequisite_of:
+    description: A prerequisite_of B - học sinh cần nắm A trước khi học B.
+    pairs: [[concept, concept]]
+    acyclic: true
+    non_decreasing: grade_introduced
+  related_to:
+    description: Hai khái niệm liên quan (đối xứng, chỉ lưu một chiều).
+    pairs: [[concept, concept]]
+    symmetric: true
+  part_of:
+    description: Thuộc về (khái niệm con -> khái niệm/chủ đề; bài -> chương).
+    pairs: [[concept, concept], [lesson, chapter]]
+    acyclic: true
+  appears_in_lesson:
+    description: Khái niệm xuất hiện trong bài; role = introduced (bài giới thiệu) hoặc used (bài sử dụng).
+    pairs: [[concept, lesson]]
+    required: [role]
+    enums:
+      role: [introduced, used]

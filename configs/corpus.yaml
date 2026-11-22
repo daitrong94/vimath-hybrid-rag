@@ -1,0 +1,78 @@
+# Corpus pipeline: probe PDFs -> Markdown (text layer / OCR) -> normalize -> chunks.
+# Also holds the knowledge-graph build settings (the KG is part of the knowledge base).
+# Values marked TBD are decided after inspecting the real PDFs (docs/ROADMAP.md, week 1).
+
+corpus_version: v1 # bump when chunking rules change; golden-set ids are re-validated against it
+
+paths:
+  raw_dir: data/raw
+  probe_dir: data/processed/probe
+  markdown_dir: data/processed/md
+  chunks_path: data/processed/chunks/chunks.jsonl
+
+# "Kết nối tri thức với cuộc sống" - Toán 6-9, Tập 1 + Tập 2.
+# printed_page_offset = pdf_page - printed_page (used for citations); TBD per book.
+books:
+  - { book_id: g6v1, grade: 6, volume: 1, file: toan6_tap1.pdf, printed_page_offset: null }
+  - { book_id: g6v2, grade: 6, volume: 2, file: toan6_tap2.pdf, printed_page_offset: null }
+  - { book_id: g7v1, grade: 7, volume: 1, file: toan7_tap1.pdf, printed_page_offset: null }
+  - { book_id: g7v2, grade: 7, volume: 2, file: toan7_tap2.pdf, printed_page_offset: null }
+  - { book_id: g8v1, grade: 8, volume: 1, file: toan8_tap1.pdf, printed_page_offset: null }
+  - { book_id: g8v2, grade: 8, volume: 2, file: toan8_tap2.pdf, printed_page_offset: null }
+  - { book_id: g9v1, grade: 9, volume: 1, file: toan9_tap1.pdf, printed_page_offset: null }
+  - { book_id: g9v2, grade: 9, volume: 2, file: toan9_tap2.pdf, printed_page_offset: null }
+
+probe:
+  # Initial guesses - calibrate on the first PDFs.
+  min_chars_per_page: 200 # fewer -> likely scanned
+  min_valid_syllable_ratio: 0.8 # lower -> garbled text layer (legacy TCVN3/VNI fonts)
+  max_image_area_ratio: 0.6 # higher -> likely scanned
+
+ocr:
+  backend: marker # text_layer | marker | mineru - TBD after the OCR spike
+  ocr_all_pages: true # formulas in text-layer PDFs are often broken; revisit after the spike
+  page_markers: true # insert "<!-- page: N -->" so chunks keep page metadata
+  marker:
+    extra: ocr-marker # pip install -e ".[ingest,ocr-marker]" (Colab)
+    command: null # TBD: CLI template with {pdf} and {out}; verify with --help on Colab
+  mineru:
+    extra: ocr-mineru
+    command: null # TBD
+
+normalize:
+  unicode_form: NFC
+  tone_mark_style: old # canonical tone placement for search keys (hòa vs hoà); TBD
+  fold_i_y: false # search keys only (lí/lý, kĩ/kỹ) - ablation A2
+  keep_decimal_comma: true # 3,5 stays 3,5
+  latex:
+    unify_frac: true # \dfrac, \tfrac -> \frac
+    strip_left_right: true # \left( ... \right) -> ( ... )
+  strip_patterns: [] # TBD: running headers/footers/page numbers seen in the PDFs
+
+chunking:
+  # Regexes, matched case-insensitively against Markdown headings / block starts.
+  # TBD: confirm every marker against the real PDFs.
+  unit_markers:
+    chapter: '^#+\s*CHƯƠNG\s+([IVXLC]+)'
+    lesson: '^#+\s*BÀI\s+(\d+)'
+    practice: '^#+\s*LUYỆN TẬP CHUNG'
+    chapter_review: '^#+\s*BÀI TẬP CUỐI CHƯƠNG'
+    experiential: '^#+\s*HOẠT ĐỘNG THỰC HÀNH TRẢI NGHIỆM'
+  block_markers:
+    definition: ['^Định nghĩa', '^Khái niệm']
+    theorem: ['^Định l[íý]', '^Tính chất', '^Quy tắc', '^Hệ quả']
+    formula: ['^Công thức']
+    example: ['^Ví dụ\s*\d*']
+    exercise: ['^Luyện tập\s*\d*', '^Vận dụng', '^Bài tập', '^\d+\.\d+\.?\s']
+    explanation: ['^HĐ\s*\d*', '^Nhận xét', '^Chú ý', '^Em có biết']
+  max_chars: 1500
+  min_chars: 80 # merge shorter blocks into the previous block of the same unit
+  keep_together: [example] # never split an example from its solution
+
+kg_build:
+  schema: data/kg/schema.yaml
+  curated_dir: data/kg/curated # lessons.csv, concepts.csv, edges.csv (hand-curated, committed)
+  candidates_dir: data/kg/candidates # LLM-suggested candidates: names + chunk ids only, no textbook text
+  output: data/kg/graph.json
+  curriculum_seed: null # TBD: concept list from Chương trình GDPT 2018 (Thông tư 32/2018/TT-BGDĐT)
+  extraction_llm: dev # key under `llm` in configs/models.yaml

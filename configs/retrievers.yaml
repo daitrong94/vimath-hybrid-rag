@@ -1,0 +1,71 @@
+# Retrieval methods compared in the benchmark. Tune ONLY on the dev split.
+
+chunks_path: data/processed/chunks/chunks.jsonl
+index_dir: data/processed/indexes
+# Chunk types that are indexed (ablation A7: drop `exercise`).
+index_types: [definition, theorem, formula, example, exercise, explanation, other]
+
+grade_filter:
+  mode: le # none | le (chunk grade <= student grade) | eq
+
+bm25:
+  library: bm25s
+  method: lucene
+  k1: 1.5
+  b: 0.75
+  tokenizer: syllable # syllable | word (underthesea, extra `viseg`) - ablation A1
+  lowercase: true
+  keep_latex_commands: true # \frac -> "frac"
+  fold_i_y: false # ablation A2
+
+dense:
+  model: embedding # key in configs/models.yaml
+  index: flat_ip # exact inner-product search on L2-normalized vectors
+  normalize: true
+  batch_size: 16
+  max_seq_length: 512
+
+graph:
+  kg_path: data/kg/graph.json
+  linking:
+    alias_match: true
+    embedding_fallback_top_m: 3
+  expansion: ppr # ppr (personalized PageRank) | bfs - ablation A6
+  max_hops: 2
+  ppr_alpha: 0.85
+  edge_weights:
+    prerequisite_of: 1.0
+    part_of: 0.5
+    related_to: 0.5
+    appears_in_lesson: 1.0
+  prerequisite_cues: ["trước khi", "cần biết", "cần ôn", "kiến thức nào", "nền tảng"]
+  type_weights:
+    definition: 1.0
+    theorem: 1.0
+    formula: 1.0
+    example: 0.7
+    explanation: 0.5
+    exercise: 0.3
+    other: 0.2
+
+hybrid:
+  components: [bm25, dense, graph]
+  rrf_k: 60 # Cormack et al. (2009) - ablation A4
+  weights: { bm25: 1.0, dense: 1.0, graph: 1.0 }
+  candidate_k: 50 # per-component depth before fusion
+
+reranker:
+  model: reranker # key in configs/models.yaml
+  top_n: 20 # rerank the top-N fused candidates - ablation A5
+  batch_size: 8
+  max_length: 512
+
+# Names accepted by api.answer(method=...) and scripts/run_eval.py --methods.
+methods:
+  none: { retriever: null } # closed-book LLM baseline (generation eval only)
+  bm25: { retriever: bm25 }
+  dense: { retriever: dense }
+  graph: { retriever: graph }
+  hybrid: { retriever: hybrid }
+  hybrid_no_graph: { retriever: hybrid, components: [bm25, dense] } # ablation A3
+  hybrid_rerank: { retriever: hybrid, rerank: true }

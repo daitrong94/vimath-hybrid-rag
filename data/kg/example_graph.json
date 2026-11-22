@@ -1,0 +1,53 @@
+{
+  "graph": {
+    "name": "toy-example",
+    "synthetic": true,
+    "note": "Synthetic example of the KG format. Lesson/chapter numbers and titles are illustrative and not verified against the textbooks."
+  },
+  "nodes": [
+    {"id": "g6-c02", "type": "chapter", "grade": 6, "number": 2, "title": "Tính chia hết trong tập hợp các số tự nhiên (minh họa)"},
+    {"id": "g6-c06", "type": "chapter", "grade": 6, "number": 6, "title": "Phân số (minh họa)"},
+    {"id": "g7-c01", "type": "chapter", "grade": 7, "number": 1, "title": "Số hữu tỉ (minh họa)"},
+    {"id": "g6-b08", "type": "lesson", "grade": 6, "number": 8, "volume": 1, "chapter": 2, "title": "Quan hệ chia hết và tính chất (minh họa)"},
+    {"id": "g6-b10", "type": "lesson", "grade": 6, "number": 10, "volume": 1, "chapter": 2, "title": "Số nguyên tố (minh họa)"},
+    {"id": "g6-b11", "type": "lesson", "grade": 6, "number": 11, "volume": 1, "chapter": 2, "title": "Ước chung. Ước chung lớn nhất (minh họa)"},
+    {"id": "g6-b23", "type": "lesson", "grade": 6, "number": 23, "volume": 2, "chapter": 6, "title": "Mở rộng phân số. Phân số bằng nhau (minh họa)"},
+    {"id": "g7-b01", "type": "lesson", "grade": 7, "number": 1, "volume": 1, "chapter": 1, "title": "Tập hợp các số hữu tỉ (minh họa)"},
+    {"id": "tinh-chia-het", "type": "concept", "name": "Tính chia hết", "kind": "topic", "grade_introduced": 6},
+    {"id": "quan-he-chia-het", "type": "concept", "name": "Quan hệ chia hết", "kind": "concept", "grade_introduced": 6, "aliases": ["chia hết"]},
+    {"id": "uoc-va-boi", "type": "concept", "name": "Ước và bội", "kind": "concept", "grade_introduced": 6, "aliases": ["ước", "bội"]},
+    {"id": "so-nguyen-to", "type": "concept", "name": "Số nguyên tố", "kind": "concept", "grade_introduced": 6},
+    {"id": "hop-so", "type": "concept", "name": "Hợp số", "kind": "concept", "grade_introduced": 6},
+    {"id": "phan-tich-ra-thua-so-nguyen-to", "type": "concept", "name": "Phân tích một số ra thừa số nguyên tố", "kind": "method", "grade_introduced": 6},
+    {"id": "ucln", "type": "concept", "name": "Ước chung lớn nhất", "kind": "concept", "grade_introduced": 6, "aliases": ["ƯCLN"]},
+    {"id": "rut-gon-phan-so", "type": "concept", "name": "Rút gọn phân số", "kind": "method", "grade_introduced": 6},
+    {"id": "so-huu-ti", "type": "concept", "name": "Số hữu tỉ", "kind": "concept", "grade_introduced": 7}
+  ],
+  "edges": [
+    {"source": "quan-he-chia-het", "target": "uoc-va-boi", "type": "prerequisite_of"},
+    {"source": "uoc-va-boi", "target": "so-nguyen-to", "type": "prerequisite_of"},
+    {"source": "so-nguyen-to", "target": "phan-tich-ra-thua-so-nguyen-to", "type": "prerequisite_of"},
+    {"source": "phan-tich-ra-thua-so-nguyen-to", "target": "ucln", "type": "prerequisite_of"},
+    {"source": "uoc-va-boi", "target": "ucln", "type": "prerequisite_of"},
+    {"source": "ucln", "target": "rut-gon-phan-so", "type": "prerequisite_of"},
+    {"source": "rut-gon-phan-so", "target": "so-huu-ti", "type": "prerequisite_of"},
+    {"source": "so-nguyen-to", "target": "hop-so", "type": "related_to"},
+    {"source": "quan-he-chia-het", "target": "tinh-chia-het", "type": "part_of"},
+    {"source": "so-nguyen-to", "target": "tinh-chia-het", "type": "part_of"},
+    {"source": "g6-b08", "target": "g6-c02", "type": "part_of"},
+    {"source": "g6-b10", "target": "g6-c02", "type": "part_of"},
+    {"source": "g6-b11", "target": "g6-c02", "type": "part_of"},
+    {"source": "g6-b23", "target": "g6-c06", "type": "part_of"},
+    {"source": "g7-b01", "target": "g7-c01", "type": "part_of"},
+    {"source": "quan-he-chia-het", "target": "g6-b08", "type": "appears_in_lesson", "role": "introduced"},
+    {"source": "uoc-va-boi", "target": "g6-b08", "type": "appears_in_lesson", "role": "introduced"},
+    {"source": "so-nguyen-to", "target": "g6-b10", "type": "appears_in_lesson", "role": "introduced"},
+    {"source": "hop-so", "target": "g6-b10", "type": "appears_in_lesson", "role": "introduced"},
+    {"source": "phan-tich-ra-thua-so-nguyen-to", "target": "g6-b10", "type": "appears_in_lesson", "role": "introduced"},
+    {"source": "ucln", "target": "g6-b11", "type": "appears_in_lesson", "role": "introduced"},
+    {"source": "so-nguyen-to", "target": "g6-b11", "type": "appears_in_lesson", "role": "used"},
+    {"source": "rut-gon-phan-so", "target": "g6-b23", "type": "appears_in_lesson", "role": "introduced"},
+    {"source": "ucln", "target": "g6-b23", "type": "appears_in_lesson", "role": "used"},
+    {"source": "so-huu-ti", "target": "g7-b01", "type": "appears_in_lesson", "role": "introduced"}
+  ]
+}

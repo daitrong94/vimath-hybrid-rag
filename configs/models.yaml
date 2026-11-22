@@ -1,0 +1,42 @@
+# Model registry. Ids marked TBD are decided later (docs/EVALUATION.md, section 10).
+
+embedding:
+  name: BAAI/bge-m3
+  device: cpu # cpu on the laptop; cuda on Colab
+
+reranker:
+  name: BAAI/bge-reranker-v2-m3
+  device: cpu
+
+llm:
+  dev: # development runs, KG candidate extraction
+    backend: gemini
+    model: TBD # current Gemini Flash model available on the free tier
+    api_key_env: GEMINI_API_KEY
+  final: # final benchmark runs (GPT or Claude)
+    backend: TBD # openai | anthropic
+    model: TBD
+    api_key_env: TBD
+  judge: # LLM-as-judge; use a different model family from `final`
+    backend: TBD
+    model: TBD
+    api_key_env: TBD
+  local: # offline experiments through Ollama (slow on CPU)
+    backend: ollama
+    model: TBD
+    base_url_env: OLLAMA_BASE_URL
+
+generation:
+  temperature: 0.2
+  judge_temperature: 0.0
+  max_output_tokens: 800
+  context_k: 5 # chunks put into the prompt - ablation A9
+
+# USD per million tokens, copied from the providers' pricing pages before any paid run.
+# Never guess: CostTracker refuses models that are missing here.
+# Example entry:  <model id>: { input: <usd>, output: <usd> }
+prices_usd_per_mtok: {}
+
+cache:
+  enabled: true
+  dir: .cache/llm # git-ignored

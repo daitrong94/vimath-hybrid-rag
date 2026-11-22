@@ -1,0 +1,44 @@
+# Git hooks. Install once per clone: uv run pre-commit install
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+        exclude: ^uv\.lock$
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  # Notebook outputs may contain textbook passages: strip them on commit.
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.9.2
+    hooks:
+      - id: nbstripout
+
+  # Copyright guard: refuse textbook-derived files even if they were force-added.
+  - repo: local
+    hooks:
+      - id: forbid-textbook-data
+        name: forbid textbook-derived data (copyright, docs/DATA.md)
+        entry: textbook PDFs, OCR output, chunks, indexes and raw run outputs must stay local
+        language: fail
+        files: ^(data/raw|data/processed|results/runs)/
+        exclude: \.gitkeep$
+      - id: forbid-pdf
+        name: forbid PDF files outside docs/
+        entry: PDF files must not be committed (textbooks are copyrighted)
+        language: fail
+        files: \.pdf$
+        exclude: ^docs/
