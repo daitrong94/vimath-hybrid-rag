@@ -25,8 +25,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# PDF probing and text-layer extraction (laptop).
-ingest = ["pypdfium2>=5,<6"]
+# PDF probing, page subsets, previews and text-layer extraction.
+# Pillow spans several majors on purpose: surya-ocr (marker) needs <11, mineru needs >=11.
+ingest = ["pypdfium2>=5,<6", "pillow>=10.2,<14"]
 # OCR backends: Colab T4 only, separate environment (they pin older LLM SDKs, see [tool.uv]).
 ocr-marker = ["marker-pdf>=2.2,<3"]
 ocr-mineru = ["mineru[torch]>=4.2,<5"]

@@ -12,8 +12,9 @@ paths:
 
 # "Kết nối tri thức với cuộc sống" - Toán 6-9, Tập 1 + Tập 2.
 # printed_page_offset = pdf_page - printed_page (used for citations); TBD per book.
+# g6v1 (checked 2026-11-24): image-only PDF, 126 pages of 1094x1536 px, offset 1.
 books:
-  - { book_id: g6v1, grade: 6, volume: 1, file: toan6_tap1.pdf, printed_page_offset: null }
+  - { book_id: g6v1, grade: 6, volume: 1, file: toan6_tap1.pdf, printed_page_offset: 1 }
   - { book_id: g6v2, grade: 6, volume: 2, file: toan6_tap2.pdf, printed_page_offset: null }
   - { book_id: g7v1, grade: 7, volume: 1, file: toan7_tap1.pdf, printed_page_offset: null }
   - { book_id: g7v2, grade: 7, volume: 2, file: toan7_tap2.pdf, printed_page_offset: null }
@@ -30,14 +31,43 @@ probe:
 
 ocr:
   backend: marker # text_layer | marker | mineru - TBD after the OCR spike
-  ocr_all_pages: true # formulas in text-layer PDFs are often broken; revisit after the spike
+  ocr_all_pages: true # g6v1 has no text layer at all; formulas in text-layer PDFs are often broken too
   page_markers: true # insert "<!-- page: N -->" so chunks keep page metadata
+  # Command templates: {pdf}, {out} (output dir), {stem} (pdf file name without suffix).
+  # Syntax taken from the marker-pdf 2.2.0 / mineru 4.2.3 READMEs; confirm with --help on Colab.
+  # Never add marker --use_llm or mineru --remote: both send textbook pages to third-party services.
   marker:
     extra: ocr-marker # pip install -e ".[ingest,ocr-marker]" (Colab)
-    command: null # TBD: CLI template with {pdf} and {out}; verify with --help on Colab
+    # --mode fast: in-process ONNX OCR. GPU modes (balanced/vllm) need vLLM in Docker, which
+    # Colab does not provide.
+    command: marker_single {pdf} --output_dir {out} --output_format markdown --paginate_output --force_ocr --mode fast
   mineru:
     extra: ocr-mineru
-    command: null # TBD
+    # basic tier fits Colab free (T4, ~12 GB RAM); standard recommends >= 16 GB RAM.
+    command: mineru-kit parse {pdf} -o {out}/{stem}.md --tier basic
+
+# OCR spike (docs/DATA.md, section 3.2): scripts/ocr_spike.py, notebooks/colab_ocr_spike.ipynb.
+ocr_spike:
+  book_id: g6v1
+  # 1-based PDF pages: 12 Roman-numeral tables; 18 lesson opener + column arithmetic; 24 powers;
+  # 26 nested brackets; 30 chapter + lesson opener; 50 LCM/GCD boxes; 58 integers chapter;
+  # 76 negative numbers; 84 geometry figures; 92 area formulas; 98 chapter-review exercises.
+  pages: [12, 18, 24, 26, 30, 50, 58, 76, 84, 92, 98]
+  scales: [1, 2] # 2 = pages rendered at 2x and re-embedded (larger glyphs, no new detail)
+  out_dir: data/processed/ocr_spike # git-ignored: outputs contain textbook text
+  timeout_s: 3600
+  env:
+    MINERU_TELEMETRY_DISABLED: "1"
+  variants:
+    marker_fast:
+      package: marker-pdf
+      command: marker_single {pdf} --output_dir {out} --output_format markdown --paginate_output --force_ocr --mode fast
+    mineru_basic:
+      package: mineru
+      command: mineru-kit parse {pdf} -o {out}/{stem}.md --tier basic
+    mineru_standard: # may run out of memory on Colab free
+      package: mineru
+      command: mineru-kit parse {pdf} -o {out}/{stem}.md --tier standard
 
 normalize:
   unicode_form: NFC
@@ -47,11 +77,18 @@ normalize:
   latex:
     unify_frac: true # \dfrac, \tfrac -> \frac
     strip_left_right: true # \left( ... \right) -> ( ... )
-  strip_patterns: [] # TBD: running headers/footers/page numbers seen in the PDFs
+  # Regexes (multiline, case-insensitive) for lines to drop. The publisher watermark
+  # "KẾT NỐI TRI THỨC / VỚI CUỘC SỐNG" is printed faintly in the middle of every page.
+  # TBD: refine after seeing OCR output (page numbers, running headers).
+  strip_patterns:
+    - '^\s*KẾT NỐI TRI THỨC\s*$'
+    - '^\s*VỚI CUỘC SỐNG\s*$'
 
 chunking:
   # Regexes, matched case-insensitively against Markdown headings / block starts.
-  # TBD: confirm every marker against the real PDFs.
+  # TBD: confirm every marker against the real OCR output. In g6v1 the lesson number is drawn
+  # inside a round "BÀI 8" badge, so OCR may split "BÀI", "8" and the title over several lines.
+  # Some labels are icons only (e.g. "?" for questions) and will be lost by OCR.
   unit_markers:
     chapter: '^#+\s*CHƯƠNG\s+([IVXLC]+)'
     lesson: '^#+\s*BÀI\s+(\d+)'
@@ -75,4 +112,7 @@ kg_build:
   candidates_dir: data/kg/candidates # LLM-suggested candidates: names + chunk ids only, no textbook text
   output: data/kg/graph.json
   curriculum_seed: null # TBD: concept list from Chương trình GDPT 2018 (Thông tư 32/2018/TT-BGDĐT)
+  # Every lesson opens with a "KHÁI NIỆM, THUẬT NGỮ" box listing its concepts (e.g. Bài 8:
+  # Chia hết, Ước, Bội): seed for concept nodes + appears_in_lesson(role=introduced).
+  lesson_concept_box: 'KHÁI NIỆM,\s*THUẬT NGỮ'
   extraction_llm: dev # key under `llm` in configs/models.yaml

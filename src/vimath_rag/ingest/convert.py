@@ -10,11 +10,35 @@ Each conversion writes ``{book_id}.md`` and ``{book_id}.manifest.json`` (tool, v
 time) under ``data/processed/md/`` so the corpus can be traced and rebuilt.
 """
 
+import re
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
 Backend = Literal["text_layer", "marker", "mineru"]
+
+# Marker --paginate_output puts a line "{N}" + 48 dashes before each page (N = 0-based page id).
+# Braces are optional here so that both renderings of the README format are accepted.
+_MARKER_PAGE_SEP_RE = re.compile(r"^\{?(\d+)\}?-{48}[ \t]*$", re.MULTILINE)
+
+
+def split_paginated_markdown(markdown: str) -> list[tuple[int, str]]:
+    """Split Marker ``--paginate_output`` Markdown into ``(page_id, text)`` pairs.
+
+    ``page_id`` is the number in the separator (0-based in Marker). Text before the first
+    separator, if any, is returned with ``page_id = -1``. Returns ``[]`` when there is no separator.
+    """
+    matches = list(_MARKER_PAGE_SEP_RE.finditer(markdown))
+    if not matches:
+        return []
+    pages: list[tuple[int, str]] = []
+    head = markdown[: matches[0].start()].strip()
+    if head:
+        pages.append((-1, head))
+    for m, nxt in zip(matches, [*matches[1:], None], strict=True):
+        end = nxt.start() if nxt is not None else len(markdown)
+        pages.append((int(m[1]), markdown[m.end() : end].strip()))
+    return pages
 
 
 def convert_pdf(

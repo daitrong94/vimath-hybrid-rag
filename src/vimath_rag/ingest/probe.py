@@ -6,6 +6,9 @@ Verdicts:
 - ``scanned``: no usable text layer (image-only page).
 
 Runs on the laptop (CPU). Output: ``data/processed/probe/{book_id}.json``.
+
+Observed on g6v1 (2026-11-24): every page is a single full-page image with no text at all, so a
+document-level shortcut ("image-only PDF": all pages ``scanned``) should be reported up front.
 """
 
 from collections.abc import Sequence

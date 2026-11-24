@@ -11,7 +11,7 @@ Bộ *Kết nối tri thức với cuộc sống* (NXB Giáo dục Việt Nam), 
 
 | `book_id` | Sách | File trong `data/raw/` | Trạng thái | `printed_page_offset` |
 |---|---|---|---|---|
-| `g6v1` | Toán 6 – Tập 1 | `toan6_tap1.pdf` | chưa tải | `TBD` |
+| `g6v1` | Toán 6 – Tập 1 | `toan6_tap1.pdf` | đã tải 24/11: toàn ảnh (không có lớp chữ), 126 trang, 1094×1536 px | 1 |
 | `g6v2` | Toán 6 – Tập 2 | `toan6_tap2.pdf` | chưa tải | `TBD` |
 | `g7v1` | Toán 7 – Tập 1 | `toan7_tap1.pdf` | chưa tải | `TBD` |
 | `g7v2` | Toán 7 – Tập 2 | `toan7_tap2.pdf` | chưa tải | `TBD` |
@@ -20,8 +20,16 @@ Bộ *Kết nối tri thức với cuộc sống* (NXB Giáo dục Việt Nam), 
 | `g9v1` | Toán 9 – Tập 1 | `toan9_tap1.pdf` | chưa tải | `TBD` |
 | `g9v2` | Toán 9 – Tập 2 | `toan9_tap2.pdf` | chưa tải | `TBD` |
 
-- Loại PDF (có lớp văn bản hay scan) chưa biết; pipeline xử lý được cả hai (mục 3).
+- Pipeline xử lý được cả PDF có lớp văn bản lẫn PDF ảnh (mục 3).
 - `printed_page_offset` = số trang PDF − số trang in trong sách, dùng để trích dẫn đúng số trang. Xác định khi có PDF.
+
+**Kết quả kiểm tra `g6v1` (24/11/2026):**
+
+- File được ghép từ ảnh chụp từng trang (metadata: `pdf-lib`); mỗi trang là một ảnh 1094×1536 px nén không mất dữ liệu (ước tính khoảng 146 DPI với khổ sách rộng 19 cm), **không có lớp văn bản** nên phải OCR toàn bộ. Ảnh nét, dấu tiếng Việt rõ.
+- Trang 1 là bìa, trang 2 là trang lót, trang 126 là bìa sau; số trang in liền mạch ở các trang lấy mẫu (PDF 3 → trang 2, …, PDF 124 → trang 123), nên `printed_page_offset = 1`.
+- Mọi trang có watermark mờ "KẾT NỐI TRI THỨC / VỚI CUỘC SỐNG" ở giữa, cần lọc sau OCR (`normalize.strip_patterns`).
+- Số bài nằm trong huy hiệu tròn "BÀI 8", không phải dòng tiêu đề; một số nhãn chỉ là biểu tượng (dấu "?" cho câu hỏi) nên OCR sẽ mất nhãn.
+- Mỗi bài mở đầu bằng khung **"KHÁI NIỆM, THUẬT NGỮ"** liệt kê khái niệm của bài (ví dụ Bài 8: Chia hết, Ước, Bội), dùng để khởi tạo đồ thị kiến thức (mục 6.4).
 
 ### 1.2 Chương trình GDPT 2018 môn Toán (khởi tạo đồ thị kiến thức)
 
@@ -86,10 +94,14 @@ Ngưỡng ban đầu trong `configs/corpus.yaml: probe` chỉ là phỏng đoán
 
 ### 3.2 Convert (Colab T4)
 
-- Ngay cả với PDF có lớp văn bản, công thức thường bị vỡ (ký tự rời, font ký hiệu), nên mặc định OCR mọi trang bằng Marker hoặc MinerU; lớp văn bản (nếu tốt) dùng để đối chiếu dấu tiếng Việt.
-- **Thử nghiệm OCR (tuần 1):** khoảng 10 trang mẫu mỗi lớp (có công thức, hình, bảng, khung định nghĩa). Tiêu chí: (1) đúng dấu tiếng Việt, (2) đúng LaTeX, (3) giữ được cấu trúc tiêu đề Chương/Bài/mục, (4) thời gian mỗi trang trên T4. Ghi kết quả vào tài liệu (`TBD`) và chọn `ocr.backend` trong `configs/corpus.yaml`.
+- Ngay cả với PDF có lớp văn bản, công thức thường bị vỡ (ký tự rời, font ký hiệu), nên mặc định OCR mọi trang bằng Marker hoặc MinerU; lớp văn bản (nếu tốt) dùng để đối chiếu dấu tiếng Việt. `g6v1` không có lớp văn bản nên bắt buộc OCR.
+- **Công cụ trên Colab T4** (theo README marker-pdf 2.2.0 và mineru 4.2.3, đọc ngày 24/11/2026):
+  - Marker: chế độ GPU (`balanced`, `vllm`) chạy VLM qua vLLM trong Docker, Colab không hỗ trợ, nên dùng `--mode fast` (OCR bằng ONNX) kèm `--force_ocr`. Có thể thử `balanced` sau nếu tự dựng server suy luận (`SURYA_INFERENCE_URL`).
+  - MinerU: lệnh độc lập `mineru-kit parse <pdf> -o <md> --tier basic|standard`. Colab miễn phí (khoảng 12 GB RAM) hợp với `basic`; `standard` khuyến nghị ≥ 16 GB RAM. Tắt telemetry bằng `MINERU_TELEMETRY_DISABLED=1`.
+  - **Không dùng** `marker --use_llm` hay `mineru --remote`: cả hai gửi trang SGK tới dịch vụ bên thứ ba.
+- **Thử nghiệm OCR (tuần 1):** `scripts/ocr_spike.py` + `notebooks/colab_ocr_spike.ipynb`, 11 trang mẫu của `g6v1` (danh sách trong `configs/corpus.yaml: ocr_spike`), ở ảnh gốc và ảnh phóng 2×. Tiêu chí chấm tay (0–2) trong `scores.csv`: (1) đúng dấu tiếng Việt, (2) đúng LaTeX, (3) giữ cấu trúc Chương/Bài/mục, (4) bảng; kèm thời gian mỗi trang và các chỉ số tự động trong `summary.json` (tỉ lệ chữ có dấu, số công thức, số lần còn watermark). Khi có Toán 8 hoặc 9 cần thử thêm vài trang nhiều công thức. Kết quả chọn `ocr.backend`: `TBD`.
 - Đầu ra: `data/processed/md/{book_id}.md` có mốc `<!-- page: N -->`, kèm `{book_id}.manifest.json` (công cụ, phiên bản, lệnh chạy, thời gian).
-- Giấy phép (theo metadata trên PyPI, kiểm tra ngày 22/11/2026): `marker-pdf` 2.x khai báo Apache-2.0; `mineru` 4.x dùng giấy phép riêng (MinerU Open Source License). Trọng số mô hình OCR có thể có điều khoản riêng; đọc trước khi dùng. Không dùng PyMuPDF trong package (AGPL-3.0); dùng pypdfium2.
+- Giấy phép (theo PyPI và README, kiểm tra 22–24/11/2026): mã nguồn `marker-pdf` 2.x là Apache-2.0, trọng số mô hình dùng giấy phép AI Pubs Open Rail-M sửa đổi (miễn phí cho nghiên cứu và mục đích cá nhân); `mineru` 4.x dùng giấy phép riêng (MinerU Open Source License). Không dùng PyMuPDF trong package (AGPL-3.0); dùng pypdfium2.
 
 ### 3.3 Normalize
 
@@ -257,7 +269,7 @@ Nguồn chuẩn: [`data/kg/schema.yaml`](../data/kg/schema.yaml) (mã nguồn đ
 ### 6.4 Quy trình xây dựng
 
 1. Nút `chapter` và `lesson` từ mục lục SGK (tên bài là thông tin ngắn mang tính sự kiện).
-2. Nút `concept` và `grade_introduced` từ Chương trình GDPT 2018 (nội dung, yêu cầu cần đạt).
+2. Nút `concept` và `grade_introduced` từ Chương trình GDPT 2018 (nội dung, yêu cầu cần đạt), đối chiếu với khung "KHÁI NIỆM, THUẬT NGỮ" ở đầu mỗi bài: khái niệm trong khung → cạnh `appears_in_lesson` (`role = introduced`) tới bài đó.
 3. LLM gợi ý khái niệm và quan hệ ứng viên theo từng bài (`kg.extract`) → CSV.
 4. Người hiệu đính chấp nhận, sửa hoặc xóa từng dòng → `curated/`.
 5. `scripts/build_kg.py` xây dựng đồ thị và kiểm tra bằng `kg.schema.validate_graph`: kiểu nút/cạnh hợp lệ, `prerequisite_of` và `part_of` không có chu trình, tính đơn điệu theo lớp.

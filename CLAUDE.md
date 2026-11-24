@@ -41,6 +41,7 @@ uv run ruff check . && uv run ruff format --check .
 uv run pytest
 uv run pre-commit install                                   # once per clone
 uv run python scripts/build_corpus.py --stage probe|convert|chunk
+python scripts/ocr_spike.py prepare|run|report              # OCR comparison (Colab notebook)
 uv run python scripts/build_index.py --retriever bm25|dense|all
 uv run python scripts/build_kg.py --validate data/kg/example_graph.json
 uv run python scripts/run_eval.py --methods bm25 dense --split dev
